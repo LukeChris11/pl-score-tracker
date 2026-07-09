@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PL Predictions 2026/27</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #090d1a;
+  --surf:     #111827;
+  --surf2:    #1c2a47;
+  --border:   #2d3f6b;
+  --text:     #f0f2f8;
+  --text2:    #8892b0;
+  --text3:    #4d5d85;
+  --exact:    #50c878;
+  --result:   #e8b84a;
+  --golden:   #fbbf24;
+  --red:      #ef4444;
+  --live:     #ef4444;
+  --purple:   #8b5cf6;
+}
+*,*::before,*::after { box-sizing:border-box;margin:0;padding:0; }
+html,body { height:100%; }
+body { font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh; }
+
+/* ── Login ─────────────────────────────────────────────── */
+#loginScreen {
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;
+  background:radial-gradient(ellipse at 50% 0%, #1c2a47 0%, #090d1a 70%);
+}
+.login-card {
+  background:var(--surf);border:1px solid var(--border);border-radius:16px;
+  padding:32px 28px;max-width:480px;width:100%;text-align:center;
+}
+.login-logo  { font-size:2.2rem;margin-bottom:8px; }
+.login-title { font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:600;letter-spacing:.04em;color:var(--text);margin-bottom:4px; }
+.login-sub   { font-size:.78rem;color:var(--text3);margin-bottom:24px; }
+.login-prompt { font-size:.78rem;font-weight:500;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em; }
+
+/* Search bar — only visible when there are 6+ players */
+.player-search {
+  width:100%;padding:9px 14px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:.88rem;
+  margin-bottom:16px;display:none;
+}
+.player-search:focus { outline:none;border-color:var(--purple); }
+.player-search::placeholder { color:var(--text3); }
+
+/* Avatar grid — auto-fills columns, wraps gracefully */
+.avatar-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(76px, 1fr));
+  gap:8px;
+  max-height:320px;
+  overflow-y:auto;
+  padding:4px 2px;
+}
+.avatar-btn {
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:10px 6px;border-radius:10px;border:none;
+  background:transparent;cursor:pointer;transition:background .15s;
+}
+.avatar-btn:hover { background:var(--surf2); }
+.av-circle {
+  width:54px;height:54px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;color:#fff;
+  transition:transform .15s;flex-shrink:0;
+}
+.avatar-btn:hover .av-circle { transform:scale(1.08); }
+.av-name { font-size:.72rem;color:var(--text2);font-weight:500;text-align:center;line-height:1.3; }
+
+/* PIN entry */
+#pinSection { margin-top:20px;text-align:center;border-top:1px solid var(--border);padding-top:20px; }
+.pin-label  { font-size:.82rem;color:var(--text2);margin-bottom:14px; }
+.pin-label strong { color:var(--text); }
+.pin-wrap   { display:flex;gap:8px;justify-content:center;margin-bottom:16px; }
+.pin-input  {
+  width:52px;height:56px;text-align:center;font-family:'Oswald',sans-serif;font-size:1.6rem;
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);
+  -webkit-text-security:disc;
+}
+.pin-input:focus { outline:none;border-color:var(--purple); }
+.pin-actions { display:flex;gap:8px;justify-content:center; }
+.btn-login {
+  padding:10px 28px;border-radius:8px;border:none;
+  background:var(--purple);color:#fff;font-family:'Inter',sans-serif;
+  font-size:.88rem;font-weight:600;cursor:pointer;
+}
+.btn-login:hover { filter:brightness(1.1); }
+.btn-back {
+  padding:10px 16px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--text2);font-family:'Inter',sans-serif;
+  font-size:.88rem;cursor:pointer;
+}
+.login-err { font-size:.75rem;color:var(--red);margin-top:10px;display:none; }
+
+/* ── App ───────────────────────────────────────────────── */
+#app { display:none;min-height:100vh;flex-direction:column; }
+#app.visible { display:flex; }
+
+/* ── Header ─────────────────────────────────────────────── */
+.app-hdr {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;background:var(--surf);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:20;gap:10px;flex-wrap:wrap;
+}
+.hdr-left { display:flex;align-items:center;gap:10px; }
+.hdr-logo { font-family:'Oswald',sans-serif;font-size:.95rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase; }
+.conn-dot { font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:10px; }
+.conn-dot.live    { color:var(--exact);background:rgba(80,200,120,.12); }
+.conn-dot.offline { color:var(--red);background:rgba(239,68,68,.12); }
+.conn-dot.waiting { color:var(--result);background:rgba(232,184,74,.12); }
+.hdr-right { display:flex;align-items:center;gap:10px; }
+.user-chip {
+  display:flex;align-items:center;gap:6px;padding:4px 10px;
+  border-radius:20px;background:var(--surf2);border:1px solid var(--border);
+  font-size:.75rem;font-weight:500;
+}
+.user-avatar {
+  width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;font-weight:700;color:#fff;flex-shrink:0;
+}
+.btn-signout {
+  font-size:.72rem;padding:5px 10px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;
+}
+.btn-signout:hover { color:var(--red);border-color:var(--red); }
+
+/* ── Matchweek banner ─────────────────────────────────────── */
+.mw-banner {
+  background:var(--surf2);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:6px;
+}
+.mw-label { font-family:'Oswald',sans-serif;font-size:1rem;font-weight:600;letter-spacing:.04em; }
+.mw-deadline { font-size:.72rem;color:var(--text2); }
+.mw-deadline.locked { color:var(--red);font-weight:500; }
+.mw-deadline.upcoming { color:var(--result); }
+
+/* ── Tabs ──────────────────────────────────────────────── */
+.tab-nav {
+  display:flex;background:var(--surf);border-bottom:1px solid var(--border);
+  padding:0 20px;overflow-x:auto;
+}
+.tab-btn {
+  flex:none;padding:12px 18px;font-family:'Inter',sans-serif;font-size:.82rem;
+  font-weight:500;color:var(--text3);background:none;border:none;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;
+  transition:color .15s,border-color .15s;letter-spacing:.02em;
+}
+.tab-btn:hover { color:var(--text2); }
+.tab-btn.active { color:var(--text);border-bottom-color:var(--purple); }
+.tab-pane { display:none;flex:1; }
+.tab-pane.active { display:block; }
+
+/* ── Shared content container ────────────────────────────── */
+.content { max-width:680px;margin:0 auto;padding:16px; }
+
+/* ── Prediction form ─────────────────────────────────────── */
+.pred-notice {
+  font-size:.78rem;padding:9px 14px;border-radius:8px;margin-bottom:14px;
+  border:1px solid;
+}
+.pred-notice.saved   { color:var(--exact); background:rgba(80,200,120,.08); border-color:rgba(80,200,120,.2); }
+.pred-notice.unsaved { color:var(--result);background:rgba(232,184,74,.08);  border-color:rgba(232,184,74,.2); }
+.pred-notice.locked  { color:var(--red);   background:rgba(239,68,68,.08);   border-color:rgba(239,68,68,.2); }
+
+.golden-hint { font-size:.72rem;color:var(--text3);margin-bottom:14px; }
+
+.fixture-card {
+  background:var(--surf);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:8px;overflow:hidden;
+}
+.fixture-card.golden-active { border-color:rgba(251,191,36,.5); }
+.fc-kickoff {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 12px;background:var(--surf2);
+  font-size:.65rem;color:var(--text3);letter-spacing:.04em;
+}
+.fc-live-dot { display:inline-block;width:5px;height:5px;background:var(--red);border-radius:50%;margin-right:4px;animation:blink 1s ease-in-out infinite; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.fc-body { display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:10px 12px; }
+.fc-team { font-size:.88rem;font-weight:500; }
+.fc-team.home { text-align:right; }
+.fc-team.away { text-align:left; }
+.fc-inputs { display:flex;align-items:center;gap:4px; }
+.fc-inp {
+  width:38px;height:38px;text-align:center;
+  font-family:'Oswald',sans-serif;font-size:1.3rem;font-weight:500;
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  color:var(--text3);-moz-appearance:textfield;
+}
+.fc-inp::-webkit-outer-spin-button,.fc-inp::-webkit-inner-spin-button { -webkit-appearance:none; }
+.fc-inp:focus { outline:none;border-color:var(--purple);color:var(--text);background:var(--surf2); }
+.fc-inp.filled { color:var(--text); }
+.fc-sep { font-family:'Oswald',sans-serif;font-size:1.2rem;color:var(--text3); }
+.fc-footer { display:flex;align-items:center;justify-content:flex-end;padding:4px 12px 8px; }
+.golden-star {
+  background:none;border:1px solid var(--border);border-radius:6px;
+  padding:3px 10px;font-size:.75rem;cursor:pointer;color:var(--text3);
+  transition:all .15s;font-family:'Inter',sans-serif;
+}
+.golden-star:hover { border-color:var(--golden);color:var(--golden); }
+.golden-star.active {
+  background:rgba(251,191,36,.12);border-color:var(--golden);
+  color:var(--golden);font-weight:500;
+}
+
+.submit-wrap { margin-top:16px;display:flex;justify-content:flex-end; }
+.btn-submit {
+  padding:11px 28px;border-radius:8px;border:none;
+  background:var(--purple);color:#fff;font-family:'Inter',sans-serif;
+  font-size:.88rem;font-weight:600;cursor:pointer;letter-spacing:.02em;transition:filter .15s;
+}
+.btn-submit:hover { filter:brightness(1.1); }
+.btn-submit:disabled { opacity:.5;cursor:not-allowed; }
+
+/* ── Results view ──────────────────────────────────────── */
+.week-totals {
+  display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;
+}
+.wt-card {
+  flex:1 1 120px;background:var(--surf);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;text-align:center;
+}
+.wt-name { display:block;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px; }
+.wt-pts  { font-family:'Oswald',sans-serif;font-size:1.6rem;font-weight:600; }
+
+.result-card {
+  background:var(--surf);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:8px;overflow:hidden;
+}
+.rc-header {
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);
+}
+.rc-team { font-size:.85rem;font-weight:500; }
+.rc-team.home { text-align:right; }
+.rc-team.away { text-align:left; }
+.score-badge {
+  font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:600;
+  padding:2px 10px;border-radius:5px;white-space:nowrap;text-align:center;
+}
+.score-badge.upcoming { color:var(--text3); }
+.score-badge.finished { color:var(--text);background:var(--surf2); }
+.score-badge.live     { color:var(--red);background:rgba(239,68,68,.1);animation:lpulse 2s ease-in-out infinite; }
+@keyframes lpulse{0%,100%{background:rgba(239,68,68,.1)}50%{background:rgba(239,68,68,.03)}}
+.rc-kickoff { font-size:.62rem;color:var(--text3);padding:3px 14px;background:var(--surf2); }
+.rc-preds { padding:8px 14px;display:flex;flex-direction:column;gap:4px; }
+.rp-row  { display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--bg); }
+.rp-name { font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;min-width:56px; }
+.rp-score{ font-size:.88rem;color:var(--text2);flex:1; }
+.rp-pts  { font-size:.65rem;font-weight:600;padding:2px 7px;border-radius:4px; }
+.rp-pts.pts-exact  { background:rgba(80,200,120,.12);color:var(--exact); }
+.rp-pts.pts-result { background:rgba(232,184,74,.12);color:var(--result); }
+.rp-pts.pts-zero   { color:var(--text3); }
+
+/* ── Leaderboard ───────────────────────────────────────── */
+.lb-season {
+  background:var(--surf);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;margin-bottom:16px;
+}
+.lb-row {
+  display:grid;grid-template-columns:40px 1fr 60px 60px;align-items:center;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+}
+.lb-row:last-child { border-bottom:none; }
+.lb-row.header { background:var(--surf2);padding:8px 16px; }
+.lb-row.header span { font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3); }
+.lb-row.current { background:rgba(139,92,246,.06); }
+.lb-pos  { font-family:'Oswald',sans-serif;font-size:.9rem;color:var(--text3);font-weight:500; }
+.lb-name { font-size:.9rem;font-weight:600; }
+.lb-gw   { text-align:center;font-size:.85rem;color:var(--text2); }
+.lb-pts  { text-align:right;font-family:'Oswald',sans-serif;font-size:1.1rem;font-weight:600; }
+
+.lb-weekly-title {
+  font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);margin-bottom:10px;font-weight:500;
+}
+.lb-weekly {
+  background:var(--surf);border:1px solid var(--border);border-radius:10px;
+  overflow-x:auto;
+}
+.lbw-table { min-width:300px;width:100%;border-collapse:collapse; }
+.lbw-table th,.lbw-table td {
+  padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);
+  font-size:.78rem;white-space:nowrap;
+}
+.lbw-table th { background:var(--surf2);color:var(--text3);font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;font-weight:500; }
+.lbw-table tr:last-child td { border-bottom:none; }
+.lbw-player { text-align:left !important;font-weight:600; }
+.lbw-total  { font-weight:700;border-left:1px solid var(--border); }
+
+/* ── Empty states ──────────────────────────────────────── */
+.empty { text-align:center;padding:48px 20px;color:var(--text3);font-size:.9rem; }
+.empty span { display:block;font-size:2rem;margin-bottom:12px; }
+
+/* ── Misc ──────────────────────────────────────────────── */
+.loading { text-align:center;padding:32px;color:var(--text3);font-size:.85rem; }
+</style>
+</head>
+<body>
+
+<!-- ── Login screen ────────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">⚽</div>
+    <div class="login-title">PL Predictions</div>
+    <div class="login-sub">2026/27 Season</div>
+    <div id="playerPicker">
+      <div class="login-prompt">Select your profile</div>
+      <input class="player-search" id="playerSearch" type="text"
+        placeholder="🔍 Search name…" autocomplete="off" oninput="filterPlayers(this.value)">
+      <div class="avatar-grid" id="playerGrid"></div>
+    </div>
+    <div id="pinSection" style="display:none">
+      <p class="pin-label">Enter PIN for <strong id="pinForName"></strong></p>
+      <div class="pin-wrap">
+        <input class="pin-input" id="pinInput" type="password" inputmode="numeric"
+          maxlength="4" pattern="[0-9]*" autocomplete="off">
+      </div>
+      <div class="pin-actions">
+        <button class="btn-back" id="backBtn">← Back</button>
+        <button class="btn-login" id="loginBtn">Sign in</button>
+      </div>
+      <div class="login-err" id="loginErr">Incorrect PIN — try again</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main app ─────────────────────────────────────────── -->
+<div id="app">
+  <header class="app-hdr">
+    <div class="hdr-left">
+      <span class="hdr-logo">⚽ PL Predictions</span>
+      <span class="conn-dot waiting" id="connDot">● Connecting</span>
+    </div>
+    <div class="hdr-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar"></div>
+        <span id="userName"></span>
+      </div>
+      <button class="btn-signout" id="signoutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <div class="mw-banner">
+    <span class="mw-label" id="mwLabel">Matchweek —</span>
+    <span class="mw-deadline" id="mwDeadline"></span>
+  </div>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="predictions">My Predictions</button>
+    <button class="tab-btn" data-tab="results">This Week</button>
+    <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+  </nav>
+
+  <div id="tab-predictions" class="tab-pane active">
+    <div class="content" id="predictionsContent">
+      <div class="loading">Loading fixtures…</div>
+    </div>
+  </div>
+
+  <div id="tab-results" class="tab-pane">
+    <div class="content" id="resultsContent">
+      <div class="loading">Loading…</div>
+    </div>
+  </div>
+
+  <div id="tab-leaderboard" class="tab-pane">
+    <div class="content" id="leaderboardContent">
+      <div class="loading">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ── Config ────────────────────────────────────────────────
+// Add more players here later by adding to this object
+const PLAYERS = {
+  luke:    { name:'Luke',    pin:'1911', color:'#4da6ff' },
+  charlie: { name:'Charlie', pin:'5525', color:'#ff7b3b' },
+  josh:    { name:'Josh',    pin:'3612', color:'#c084fc' },
+  matt:    { name:'Matt',    pin:'2911', color:'#34d399' },
+  nathan:  { name:'Nathan',  pin:'1111', color:'#f472b6' }
+};
+const PLAYER_IDS = Object.keys(PLAYERS);
+
+const FIREBASE_CONFIG = {
+  apiKey:            'AIzaSyCZRR2VQQaJuK711FwnAFDyTgr-Iy1DI5o',
+  authDomain:        'premier-league-tracker-a6d64.firebaseapp.com',
+  databaseURL:       'https://premier-league-tracker-a6d64-default-rtdb.firebaseio.com',
+  projectId:         'premier-league-tracker-a6d64',
+  storageBucket:     'premier-league-tracker-a6d64.firebasestorage.app',
+  messagingSenderId: '472580638016',
+  appId:             '1:472580638016:web:3b7dcad47b8f413ed766a5'
+};
+
+// ── Firebase ──────────────────────────────────────────────
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+
+db.ref('.info/connected').on('value', snap => {
+  const el = document.getElementById('connDot');
+  if (snap.val()) { el.textContent='● Live';    el.className='conn-dot live'; }
+  else            { el.textContent='● Offline'; el.className='conn-dot offline'; }
+});
+
+// ── App state ─────────────────────────────────────────────
+let currentPlayer   = null;
+let currentSeason   = null;
+let currentMatchday = null;
+let fixtures        = {};         // { [fixtureId]: fixture }
+let matchweekLocked = false;
+let firstKickoff    = null;
+let myPredictions   = {};         // { [fixtureId]: {h,a,golden} }
+let selectedGolden  = null;
+let activeTab       = 'predictions';
+
+// Firebase listener cleanup
+let fixtureListener   = null;
+let lockListener      = null;
+let myPredListener    = null;
+
+// ── Auth ──────────────────────────────────────────────────
+function initLogin() {
+  const grid = document.getElementById('playerGrid');
+
+  // Render avatar buttons
+  PLAYER_IDS.forEach(id => {
+    const p   = PLAYERS[id];
+    const btn = document.createElement('button');
+    btn.className    = 'avatar-btn';
+    btn.dataset.name = p.name.toLowerCase();
+    btn.dataset.id   = id;
+    btn.innerHTML = `
+      <div class="av-circle" style="background:${p.color}">${p.name.charAt(0)}</div>
+      <span class="av-name">${p.name}</span>`;
+    btn.addEventListener('click', () => selectPlayer(id));
+    grid.appendChild(btn);
+  });
+
+  // Show search box only when there are 6 or more players
+  if (PLAYER_IDS.length >= 6) {
+    document.getElementById('playerSearch').style.display = 'block';
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+  document.getElementById('backBtn').addEventListener('click', () => {
+    document.getElementById('pinSection').style.display = 'none';
+    document.getElementById('playerPicker').style.display = 'block';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginErr').style.display = 'none';
+  });
+  document.getElementById('pinInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') attemptLogin();
+  });
+  document.getElementById('signoutBtn').addEventListener('click', signOut);
+}
+
+// Filter avatars by name — used when search box is visible
+function filterPlayers(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.avatar-btn').forEach(btn => {
+    btn.style.display = btn.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
+let pendingPlayerId = null;
+
+function selectPlayer(id) {
+  pendingPlayerId = id;
+  document.getElementById('pinForName').textContent = PLAYERS[id].name;
+  document.getElementById('playerPicker').style.display = 'none';
+  document.getElementById('pinSection').style.display = 'block';
+  document.getElementById('loginErr').style.display = 'none';
+  document.getElementById('pinInput').value = '';
+  setTimeout(() => document.getElementById('pinInput').focus(), 50);
+}
+
+function attemptLogin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (pin === PLAYERS[pendingPlayerId].pin) {
+    loginAs(pendingPlayerId);
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+
+function loginAs(id) {
+  currentPlayer = id;
+  localStorage.setItem('plPlayer', id);
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+
+  const p = PLAYERS[id];
+  document.getElementById('userName').textContent = p.name;
+  const av = document.getElementById('userAvatar');
+  av.textContent      = p.name.charAt(0);
+  av.style.background = p.color;
+
+  loadApp();
+}
+
+function signOut() {
+  // Remove listeners
+  if (fixtureListener)  { fixtureListener.off();  fixtureListener  = null; }
+  if (lockListener)     { lockListener.off();      lockListener     = null; }
+  if (myPredListener)   { myPredListener.off();    myPredListener   = null; }
+
+  currentPlayer = null;
+  localStorage.removeItem('plPlayer');
+
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pinSection').style.display  = 'none';
+  document.getElementById('pinInput').value = '';
+}
+
+// ── App boot ──────────────────────────────────────────────
+function loadApp() {
+  db.ref('meta').on('value', snap => {
+    const meta = snap.val();
+    if (!meta || !meta.currentMatchday) {
+      document.getElementById('predictionsContent').innerHTML =
+        '<div class="empty"><span>⏳</span>Fixtures not loaded yet — automation runs hourly. Check back soon.</div>';
+      return;
+    }
+    const prevMatchday = currentMatchday;
+    currentSeason   = meta.season;
+    currentMatchday = meta.currentMatchday;
+
+    document.getElementById('mwLabel').textContent = `Matchweek ${currentMatchday}`;
+
+    if (prevMatchday !== currentMatchday) {
+      attachMatchweekListeners();
+    }
+  });
+}
+
+function attachMatchweekListeners() {
+  // Remove old listeners
+  if (fixtureListener) fixtureListener.off();
+  if (lockListener)    lockListener.off();
+  if (myPredListener)  myPredListener.off();
+
+  // Fixtures
+  fixtureListener = db.ref(`fixtures/${currentSeason}/${currentMatchday}`);
+  fixtureListener.on('value', snap => {
+    fixtures = {};
+    const data = snap.val() || {};
+    Object.values(data).forEach(f => { fixtures[f.id] = f; });
+    onStateChange();
+  });
+
+  // Lock status
+  lockListener = db.ref(`matchweekLocks/${currentSeason}/${currentMatchday}`);
+  lockListener.on('value', snap => {
+    const lock = snap.val();
+    if (lock) {
+      matchweekLocked = lock.locked;
+      firstKickoff    = lock.firstKickoff;
+    } else {
+      matchweekLocked = false;
+      firstKickoff    = null;
+    }
+    updateDeadlineBanner();
+    onStateChange();
+  });
+
+  // My predictions
+  myPredListener = db.ref(`predictions/${currentSeason}/${currentMatchday}/${currentPlayer}`);
+  myPredListener.on('value', snap => {
+    myPredictions = snap.val() || {};
+    // Re-detect selected golden from saved data
+    selectedGolden = null;
+    Object.entries(myPredictions).forEach(([fid, pred]) => {
+      if (pred.golden) selectedGolden = String(fid);
+    });
+    if (activeTab === 'predictions') renderPredictions();
+  });
+}
+
+function onStateChange() {
+  if (activeTab === 'predictions') renderPredictions();
+  if (activeTab === 'results')     renderResults();
+}
+
+// ── Deadline banner ───────────────────────────────────────
+function updateDeadlineBanner() {
+  const el = document.getElementById('mwDeadline');
+  if (matchweekLocked) {
+    el.textContent = '🔒 Predictions locked';
+    el.className   = 'mw-deadline locked';
+  } else if (firstKickoff) {
+    const d = new Date(firstKickoff);
+    const str = d.toLocaleDateString('en-GB', {
+      weekday:'short', day:'numeric', month:'short', timeZone:'Europe/London'
+    }) + ' · ' + d.toLocaleTimeString('en-GB', {
+      hour:'2-digit', minute:'2-digit', timeZone:'Europe/London'
+    });
+    el.textContent = `⏰ Locks at first kickoff · ${str}`;
+    el.className   = 'mw-deadline upcoming';
+  } else {
+    el.textContent = '';
+    el.className   = 'mw-deadline';
+  }
+}
+
+// ── Scoring ───────────────────────────────────────────────
+function calcPts(pred, fixture, golden) {
+  if (!pred || fixture.status !== 'FINISHED') return null;
+  if (fixture.homeScore === null || fixture.homeScore === undefined) return null;
+  const exact   = pred.h === fixture.homeScore && pred.a === fixture.awayScore;
+  const predRes = pred.h > pred.a ? 'h' : pred.h < pred.a ? 'a' : 'd';
+  const actRes  = fixture.homeScore > fixture.awayScore ? 'h' : fixture.homeScore < fixture.awayScore ? 'a' : 'd';
+  const base    = exact ? 3 : predRes === actRes ? 1 : 0;
+  return golden ? base * 2 : base;
+}
+
+function ptsClass(pts) {
+  if (pts === null || pts === 0) return 'pts-zero';
+  if (pts >= 3) return 'pts-exact';
+  return 'pts-result';
+}
+
+// ── Utility ───────────────────────────────────────────────
+function sortedFixtures() {
+  return Object.values(fixtures).sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
+}
+
+function fmtKickoff(utcDate) {
+  const d = new Date(utcDate);
+  return d.toLocaleDateString('en-GB', {
+    weekday:'short', day:'numeric', month:'short', timeZone:'Europe/London'
+  }) + ' · ' + d.toLocaleTimeString('en-GB', {
+    hour:'2-digit', minute:'2-digit', timeZone:'Europe/London'
+  });
+}
+
+// ── Predictions tab ───────────────────────────────────────
+function renderPredictions() {
+  const container  = document.getElementById('predictionsContent');
+  const list       = sortedFixtures();
+  const hasSubmitted = Object.keys(myPredictions).length > 0;
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="loading">Loading fixtures…</div>';
+    return;
+  }
+
+  if (matchweekLocked) {
+    renderLockedPredictions(container, list);
+    return;
+  }
+
+  let html = `
+    <div class="pred-notice ${hasSubmitted ? 'saved' : 'unsaved'}">
+      ${hasSubmitted
+        ? '✓ Picks saved — update any time before the first kickoff'
+        : 'Enter your predictions and pick your Golden Result ⭐'}
+    </div>
+    <p class="golden-hint">⭐ Golden Result = correct result gives double points. One per matchweek.</p>`;
+
+  list.forEach(f => {
+    const pred = myPredictions[f.id] || {};
+    const isGolden = selectedGolden === String(f.id);
+    const isLive   = ['IN_PLAY','PAUSED'].includes(f.status);
+    html += `
+      <div class="fixture-card${isGolden ? ' golden-active' : ''}" id="fc-${f.id}">
+        <div class="fc-kickoff">
+          ${isLive ? '<span class="fc-live-dot"></span>LIVE · ' : ''}${fmtKickoff(f.kickoff)}
+        </div>
+        <div class="fc-body">
+          <div class="fc-team home">${f.homeTeam}</div>
+          <div class="fc-inputs">
+            <input class="fc-inp${pred.h !== undefined ? ' filled' : ''}" id="ph-${f.id}"
+              type="number" inputmode="numeric" min="0" max="20"
+              placeholder="–" value="${pred.h !== undefined ? pred.h : ''}">
+            <span class="fc-sep">–</span>
+            <input class="fc-inp${pred.a !== undefined ? ' filled' : ''}" id="pa-${f.id}"
+              type="number" inputmode="numeric" min="0" max="20"
+              placeholder="–" value="${pred.a !== undefined ? pred.a : ''}">
+          </div>
+          <div class="fc-team away">${f.awayTeam}</div>
+        </div>
+        <div class="fc-footer">
+          <button class="golden-star${isGolden ? ' active' : ''}" id="gs-${f.id}"
+            onclick="toggleGolden('${f.id}')">
+            ⭐ ${isGolden ? 'Golden Result' : 'Set as Golden'}
+          </button>
+        </div>
+      </div>`;
+  });
+
+  html += `
+    <div class="submit-wrap">
+      <button class="btn-submit" id="submitBtn" onclick="submitPredictions()">
+        ${hasSubmitted ? '✓ Update picks' : 'Submit picks'}
+      </button>
+    </div>`;
+
+  container.innerHTML = html;
+}
+
+function renderLockedPredictions(container, list) {
+  let html = '<div class="pred-notice locked">🔒 Matchweek in progress — predictions are locked</div>';
+  list.forEach(f => {
+    const pred  = myPredictions[f.id];
+    const pts   = pred ? calcPts(pred, f, pred.golden) : null;
+    const isLive = ['IN_PLAY','PAUSED'].includes(f.status);
+    const scoreHtml = f.status === 'FINISHED'
+      ? `<span class="score-badge finished">${f.homeScore}–${f.awayScore}</span>`
+      : isLive
+      ? `<span class="score-badge live">${f.homeScore ?? 0}–${f.awayScore ?? 0}</span>`
+      : `<span class="score-badge upcoming">vs</span>`;
+
+    html += `
+      <div class="fixture-card">
+        <div class="fc-kickoff">${isLive ? '<span class="fc-live-dot"></span>LIVE · ' : ''}${fmtKickoff(f.kickoff)}</div>
+        <div class="fc-body">
+          <div class="fc-team home">${f.homeTeam}</div>
+          ${scoreHtml}
+          <div class="fc-team away">${f.awayTeam}</div>
+        </div>
+        <div class="fc-footer" style="justify-content:space-between;padding:4px 12px 8px">
+          <span style="font-size:.78rem;color:var(--text2)">
+            ${pred ? `${pred.golden ? '⭐ ' : ''}My pick: ${pred.h}–${pred.a}` : '<em style="color:var(--text3)">No pick</em>'}
+          </span>
+          ${pts !== null
+            ? `<span class="rp-pts ${ptsClass(pts)}">${pts} pt${pts !== 1 ? 's' : ''}</span>`
+            : '<span style="color:var(--text3);font-size:.72rem">—</span>'}
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// ── Golden result ─────────────────────────────────────────
+function toggleGolden(fixtureId) {
+  // Deactivate previous
+  if (selectedGolden) {
+    const prev = document.getElementById(`fc-${selectedGolden}`);
+    const btn  = document.getElementById(`gs-${selectedGolden}`);
+    if (prev) prev.classList.remove('golden-active');
+    if (btn)  { btn.classList.remove('active'); btn.textContent = '⭐ Set as Golden'; }
+  }
+  selectedGolden = selectedGolden === fixtureId ? null : fixtureId;
+  if (selectedGolden) {
+    const curr = document.getElementById(`fc-${selectedGolden}`);
+    const btn  = document.getElementById(`gs-${selectedGolden}`);
+    if (curr) curr.classList.add('golden-active');
+    if (btn)  { btn.classList.add('active'); btn.textContent = '⭐ Golden Result'; }
+  }
+}
+
+// ── Submit predictions ────────────────────────────────────
+function submitPredictions() {
+  const list = sortedFixtures();
+  const predictions = {};
+  let missingCount  = 0;
+
+  list.forEach(f => {
+    const hEl = document.getElementById(`ph-${f.id}`);
+    const aEl = document.getElementById(`pa-${f.id}`);
+    if (!hEl || !aEl) return;
+    const h = parseInt(hEl.value), a = parseInt(aEl.value);
+    if (isNaN(h) || isNaN(a)) { missingCount++; return; }
+    predictions[f.id] = { h, a, golden: selectedGolden === String(f.id) };
+  });
+
+  if (missingCount > 0) {
+    alert(`Please fill in all ${list.length} predictions before submitting.`);
+    return;
+  }
+  if (!selectedGolden) {
+    alert('Please pick a Golden Result (⭐) before submitting.');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  db.ref(`predictions/${currentSeason}/${currentMatchday}/${currentPlayer}`)
+    .set(predictions)
+    .then(() => {
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Update picks'; }
+    })
+    .catch(err => {
+      alert('Error saving picks: ' + err.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit picks'; }
+    });
+}
+
+// ── Results tab ───────────────────────────────────────────
+function renderResults() {
+  const container = document.getElementById('resultsContent');
+  const list = sortedFixtures();
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="loading">Loading fixtures…</div>';
+    return;
+  }
+
+  db.ref(`predictions/${currentSeason}/${currentMatchday}`).once('value', snap => {
+    const allPreds = snap.val() || {};
+
+    // Week totals
+    const totals = {};
+    PLAYER_IDS.forEach(p => {
+      totals[p] = 0;
+      const preds = allPreds[p] || {};
+      list.forEach(f => {
+        const pred = preds[f.id];
+        if (!pred) return;
+        totals[p] += calcPts(pred, f, pred.golden) || 0;
+      });
+    });
+
+    let html = '<div class="week-totals">';
+    PLAYER_IDS.forEach(p => {
+      html += `
+        <div class="wt-card">
+          <span class="wt-name" style="color:${PLAYERS[p].color}">${PLAYERS[p].name}</span>
+          <span class="wt-pts" style="color:${PLAYERS[p].color}">${totals[p]}</span>
+        </div>`;
+    });
+    html += '</div>';
+
+    list.forEach(f => {
+      const isLive = ['IN_PLAY','PAUSED'].includes(f.status);
+      const scoreHtml = f.status === 'FINISHED'
+        ? `<span class="score-badge finished">${f.homeScore}–${f.awayScore}</span>`
+        : isLive
+        ? `<span class="score-badge live">${f.homeScore ?? 0}–${f.awayScore ?? 0}</span>`
+        : `<span class="score-badge upcoming">vs</span>`;
+
+      html += `
+        <div class="result-card">
+          <div class="rc-header">
+            <span class="rc-team home">${f.homeTeam}</span>
+            ${scoreHtml}
+            <span class="rc-team away">${f.awayTeam}</span>
+          </div>
+          <div class="rc-kickoff">${fmtKickoff(f.kickoff)}</div>
+          <div class="rc-preds">
+            ${PLAYER_IDS.map(p => {
+              const pred = (allPreds[p] || {})[f.id];
+              const pts  = pred ? calcPts(pred, f, pred.golden) : null;
+              return `
+                <div class="rp-row">
+                  <span class="rp-name" style="color:${PLAYERS[p].color}">
+                    ${PLAYERS[p].name}${pred?.golden ? ' ⭐' : ''}
+                  </span>
+                  <span class="rp-score">${pred ? `${pred.h}–${pred.a}` : '<em style="color:var(--text3)">No pick</em>'}</span>
+                  <span class="rp-pts ${ptsClass(pts)}">
+                    ${pts !== null ? `${pts}pt${pts!==1?'s':''}` : '—'}
+                  </span>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+  });
+}
+
+// ── Leaderboard tab ───────────────────────────────────────
+async function renderLeaderboard() {
+  const container = document.getElementById('leaderboardContent');
+  container.innerHTML = '<div class="loading">Loading season data…</div>';
+
+  if (!currentSeason) { container.innerHTML = '<div class="empty"><span>📊</span>No data yet</div>'; return; }
+
+  try {
+    const [fixtureSnap, predSnap] = await Promise.all([
+      db.ref(`fixtures/${currentSeason}`).once('value'),
+      db.ref(`predictions/${currentSeason}`).once('value')
+    ]);
+
+    const allFixtures    = fixtureSnap.val() || {};
+    const allPredictions = predSnap.val()    || {};
+
+    const seasonTotals = {};
+    const weeklyPts    = {};
+    PLAYER_IDS.forEach(p => { seasonTotals[p] = 0; weeklyPts[p] = {}; });
+
+    const playedWeeks = [];
+
+    Object.keys(allFixtures)
+      .map(Number).sort((a,b) => a-b)
+      .forEach(wk => {
+        const weekFix  = allFixtures[wk];
+        const weekPred = allPredictions[wk] || {};
+        const hasResults = Object.values(weekFix).some(f => f.status === 'FINISHED');
+        if (!hasResults) return;
+
+        playedWeeks.push(wk);
+        PLAYER_IDS.forEach(p => {
+          const preds = weekPred[p] || {};
+          let wkPts = 0;
+          Object.values(weekFix).forEach(f => {
+            if (f.status !== 'FINISHED') return;
+            const pred = preds[f.id];
+            if (!pred) return;
+            wkPts += calcPts(pred, f, pred.golden) || 0;
+          });
+          weeklyPts[p][wk]  = wkPts;
+          seasonTotals[p]  += wkPts;
+        });
+      });
+
+    if (playedWeeks.length === 0) {
+      container.innerHTML = '<div class="empty"><span>🏆</span>Season hasn\'t started yet — check back after Gameweek 1</div>';
+      return;
+    }
+
+    const ranked = [...PLAYER_IDS].sort((a,b) => seasonTotals[b] - seasonTotals[a]);
+
+    let html = `
+      <div class="lb-season">
+        <div class="lb-row header">
+          <span>Pos</span><span>Player</span><span style="text-align:center">GW</span><span style="text-align:right">Pts</span>
+        </div>
+        ${ranked.map((p, i) => `
+          <div class="lb-row${p === currentPlayer ? ' current' : ''}">
+            <span class="lb-pos">${i+1}</span>
+            <span class="lb-name" style="color:${PLAYERS[p].color}">${PLAYERS[p].name}</span>
+            <span class="lb-gw">${playedWeeks.length}</span>
+            <span class="lb-pts" style="color:${PLAYERS[p].color}">${seasonTotals[p]}</span>
+          </div>`).join('')}
+      </div>
+
+      <div class="lb-weekly-title">Week by Week</div>
+      <div class="lb-weekly">
+        <table class="lbw-table">
+          <thead>
+            <tr>
+              <th class="lbw-player">Player</th>
+              ${playedWeeks.map(w => `<th>GW${w}</th>`).join('')}
+              <th class="lbw-total">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ranked.map(p => `
+              <tr>
+                <td class="lbw-player" style="color:${PLAYERS[p].color}">${PLAYERS[p].name}</td>
+                ${playedWeeks.map(w => `<td>${weeklyPts[p][w] ?? '–'}</td>`).join('')}
+                <td class="lbw-total" style="color:${PLAYERS[p].color}">${seasonTotals[p]}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<div class="empty"><span>⚠️</span>Error loading: ${err.message}</div>`;
+  }
+}
+
+// ── Tab navigation ────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${activeTab}`).classList.add('active');
+
+    if (activeTab === 'predictions') renderPredictions();
+    if (activeTab === 'results')     renderResults();
+    if (activeTab === 'leaderboard') renderLeaderboard();
+  });
+});
+
+// ── Boot ──────────────────────────────────────────────────
+initLogin();
+const savedPlayer = localStorage.getItem('plPlayer');
+if (savedPlayer && PLAYERS[savedPlayer]) {
+  loginAs(savedPlayer);
+}
+</script>
+</body>
+</html>
