@@ -1,0 +1,32 @@
+name: Update PL Scores
+
+on:
+  schedule:
+    # Runs every hour at :00
+    - cron: '0 * * * *'
+  # Also allows manual trigger from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  update-scores:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run score updater
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: node updater.js
