@@ -1,0 +1,14 @@
+{
+  "name": "pl-score-updater",
+  "version": "1.0.0",
+  "description": "Fetches Premier League scores from football-data.org and writes to Firebase",
+  "main": "updater.js",
+  "type": "commonjs",
+  "scripts": {
+    "update": "node updater.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "node-fetch": "^2.7.0"
+  }
+}
